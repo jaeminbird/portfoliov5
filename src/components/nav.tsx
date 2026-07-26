@@ -212,7 +212,7 @@ export default function StickyHeader() {
             }
           }}
         >
-          <Image src="/logo.svg" alt="Logo" width={29} height={29} />
+          <Image src="/logo.svg" alt="Logo" width={29} height={29} unoptimized />
         </motion.div>
       </motion.div>
 

@@ -18,7 +18,7 @@ function FallbackLogo() {
         height={128}
         priority
         className="w-32 h-32 md:w-40 md:h-40"
-        sizes="(max-width: 768px) 128px, 160px"
+        unoptimized
       />
     </div>
   )

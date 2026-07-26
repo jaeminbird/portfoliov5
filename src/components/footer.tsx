@@ -89,6 +89,7 @@ export default function Footer({ className = '', width = '80vw' }: FooterProps) 
               width={300}
               height={300}
               className="w-48 h-48 md:w-64 md:h-64 brightness-0 invert"
+              unoptimized
             />
           </div>
 

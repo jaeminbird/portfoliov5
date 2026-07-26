@@ -9,10 +9,10 @@ import { COLORS, LINKS } from '@/lib/constants';
 // SlotMachine — cycles through tasks with a slot machine letter effect
 // ---------------------------------------------------------------------------
 
-const TASKS = ['AI', 'Research', 'Tennis', 'UI/UX', 'ML', 'WebDev'];
+const TASKS = ['AI', 'Research', 'Tennis', 'UI/UX', 'ML', 'WebDev', 'Pre-Sales'];
 const RARE_TASK = 'your mom';
 const RARE_CHANCE = 1 / 1000000;
-const CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz/';
+const CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz/-';
 
 function SlotMachine() {
   const [currentTaskIndex, setCurrentTaskIndex] = useState(0);
@@ -94,7 +94,7 @@ function SlotMachine() {
 function BioContent({ labelClass, taskClass, resumeClass }: { labelClass: string; taskClass: string; resumeClass: string }) {
   return (
     <div className="flex flex-col items-center">
-      <p className={labelClass}>i&apos;m doing</p>
+      <p className={labelClass}>i do</p>
       <p className={taskClass}>
         <SlotMachine />
       </p>

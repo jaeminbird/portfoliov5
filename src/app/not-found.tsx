@@ -21,7 +21,7 @@ export default function NotFound() {
           transition={{ duration: 0.5 }}
           onClick={() => { window.location.href = '/'; }}
         >
-          <Image src="/logo.svg" alt="Logo" width={60} height={60} />
+          <Image src="/logo.svg" alt="Logo" width={60} height={60} unoptimized />
         </motion.div>
       </motion.div>
 
