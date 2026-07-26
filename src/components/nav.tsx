@@ -185,13 +185,16 @@ export default function StickyHeader() {
   ] as const;
 
   return (
+    // The header itself is transparent but full-width, so without
+    // pointer-events-none its 80px band would swallow every click and text
+    // selection at the top of the page. Interactive children opt back in.
     <header
-      className="fixed top-0 inset-x-0 z-50 h-20 flex items-center font-fredoka"
+      className="fixed top-0 inset-x-0 z-50 h-20 flex items-center font-fredoka pointer-events-none"
       style={{ fontFamily: 'var(--font-fredoka)' }}
     >
       {/* ── Logo (left) ─────────────────────────────────────────────── */}
       <motion.div
-        className="absolute left-6 md:left-12 z-[70]"
+        className="absolute left-6 md:left-12 z-[70] pointer-events-auto"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5 }}
@@ -215,7 +218,7 @@ export default function StickyHeader() {
 
       {/* ── Desktop navigation pill (center) ─────────────────────────── */}
       <motion.div
-        className={`absolute hidden md:block md:left-1/2 md:transform md:-translate-x-1/2 px-4 py-2 rounded-full transition-all duration-300 ${scrolled
+        className={`absolute hidden md:block md:left-1/2 md:transform md:-translate-x-1/2 px-4 py-2 rounded-full pointer-events-auto transition-all duration-300 ${scrolled
             ? 'border border-transparent'
             : 'bg-white border border-transparent'
           }`}
@@ -238,7 +241,7 @@ export default function StickyHeader() {
       </motion.div>
 
       {/* ── Mobile hamburger (right) ────────────────────────────────── */}
-      <div className="absolute right-6 md:hidden z-[70] cursor-pointer">
+      <div className="absolute right-6 md:hidden z-[70] cursor-pointer pointer-events-auto">
         <MenuButton
           isOpen={menuOpen}
           onClick={() => setMobileNavOpen(!menuOpen)}
@@ -255,7 +258,7 @@ export default function StickyHeader() {
       <AnimatePresence>
         {menuOpen && (
           <motion.div
-            className="fixed inset-0 bg-white z-[60] flex flex-col items-center justify-center"
+            className="fixed inset-0 bg-white z-[60] flex flex-col items-center justify-center pointer-events-auto"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}

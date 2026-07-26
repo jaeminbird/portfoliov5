@@ -313,29 +313,29 @@ export default function ThreeJSLogo() {
     }
 
     // --- Event listeners ---
-    if (mobile) {
-      mount.addEventListener('touchstart', handleTouchStart, { passive: true })
-    } else {
-      // Listen on window so the logo tracks the cursor anywhere on the page.
-      window.addEventListener('mousemove', handleMouseMove, { passive: true })
-      // mouseleave on the document element fires when the cursor exits the viewport.
-      document.documentElement.addEventListener('mouseleave', handleMouseLeave, { passive: true })
-    }
+    // Both sets are bound unconditionally. `handleResize` flips `isMobileRef`
+    // when the viewport crosses the md breakpoint, and the animation loop
+    // switches branches with it — so binding only the mount-time mode's
+    // listeners left the other mode inert. Rotating a phone to landscape
+    // (390px → 844px) moved the loop to the desktop branch with no mousemove
+    // listener to ever update its target, freezing the logo flat.
+    // Each handler already early-returns on the wrong mode, so this is inert
+    // in whichever mode isn't active.
+    mount.addEventListener('touchstart', handleTouchStart, { passive: true })
+    // Listen on window so the logo tracks the cursor anywhere on the page.
+    window.addEventListener('mousemove', handleMouseMove, { passive: true })
+    // mouseleave on the document element fires when the cursor exits the viewport.
+    document.documentElement.addEventListener('mouseleave', handleMouseLeave, { passive: true })
     window.addEventListener('resize', handleResize, { passive: true })
     animate(0)
 
     // --- Cleanup ---
-    // Use the `mobile` closure captured at mount time — not `isMobileRef.current`,
-    // which may have flipped if the viewport crossed the breakpoint since setup.
     return () => {
       if (frameId.current) cancelAnimationFrame(frameId.current)
 
-      if (mobile) {
-        mount.removeEventListener('touchstart', handleTouchStart)
-      } else {
-        window.removeEventListener('mousemove', handleMouseMove)
-        document.documentElement.removeEventListener('mouseleave', handleMouseLeave)
-      }
+      mount.removeEventListener('touchstart', handleTouchStart)
+      window.removeEventListener('mousemove', handleMouseMove)
+      document.documentElement.removeEventListener('mouseleave', handleMouseLeave)
       window.removeEventListener('resize', handleResize)
 
       if (mount && rendererRef.current?.domElement) {

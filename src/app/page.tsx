@@ -18,6 +18,10 @@ export default function Home() {
   // Lightweight parallax — fades & lifts the scroll indicator as user scrolls.
   const parallaxY = useTransform(scrollY, [0, 200], [0, -60]);
   const opacity = useTransform(scrollY, [0, 100], [1, 0]);
+  // Opacity alone doesn't stop hit-testing: once faded out, this fixed
+  // full-width strip would keep swallowing clicks and text selection at the
+  // bottom of every page.
+  const ctaPointerEvents = useTransform(opacity, (v) => (v < 0.05 ? 'none' : 'auto'));
 
   return (
     <div className="min-h-screen bg-white">
@@ -30,7 +34,7 @@ export default function Home() {
         {/* Scroll CTA — parallaxes away on scroll */}
         <motion.div
           className="fixed bottom-8 w-full flex justify-center cursor-pointer"
-          style={{ y: parallaxY, opacity }}
+          style={{ y: parallaxY, opacity, pointerEvents: ctaPointerEvents }}
           onClick={() => scrollToSection('about')}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}

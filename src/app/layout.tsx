@@ -69,20 +69,13 @@ export const metadata: Metadata = {
     title: "Jae Birdsall - Developer",
     description: "Jae Birdsall is a Machine Learning Engineer and Full Stack Developer specializing in AI/ML systems, computer vision, and modern web applications.",
     siteName: "Jae Birdsall Portfolio",
-    images: [
-      {
-        url: "/og-image.png",
-        width: 1200,
-        height: 630,
-        alt: "Jae Birdsall - Developer",
-      },
-    ],
+    // Share image comes from src/app/opengraph-image.tsx (file convention),
+    // which wires up both og:image and twitter:image with correct dimensions.
   },
   twitter: {
     card: "summary_large_image",
     title: "Jae Birdsall - Developer",
     description: "Machine Learning Engineer and Full Stack Developer specializing in AI/ML systems, computer vision, and modern web applications.",
-    images: ["/og-image.png"],
   },
   robots: {
     index: true,
