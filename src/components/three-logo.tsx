@@ -14,6 +14,7 @@ import {
   Vector3,
 } from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
+import { motion, AnimatePresence } from 'framer-motion'
 import Image from 'next/image'
 import { COLORS, BREAKPOINTS } from '@/lib/constants'
 
@@ -359,20 +360,29 @@ export default function ThreeJSLogo() {
 
   return (
     <>
-      {/* Static SVG placeholder — shown until the 3D model is ready. */}
-      {!modelLoaded && (
-        <div className="absolute inset-0 bg-white flex items-center justify-center">
-          <Image
-            src="/logo.svg"
-            alt="Logo"
-            width={128}
-            height={128}
-            priority
-            className="w-32 h-32 md:w-40 md:h-40"
-            unoptimized
-          />
-        </div>
-      )}
+      {/* Static SVG placeholder — shown until the 3D model is ready, then
+          cross-faded out so the wireframe doesn't pop in. AnimatePresence keeps
+          it mounted for the length of the exit transition. */}
+      <AnimatePresence>
+        {!modelLoaded && (
+          <motion.div
+            className="absolute inset-0 bg-white flex items-center justify-center"
+            initial={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            <Image
+              src="/logo.svg"
+              alt="Logo"
+              width={128}
+              height={128}
+              priority
+              className="w-32 h-32 md:w-40 md:h-40"
+              unoptimized
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Three.js canvas */}
       <div
