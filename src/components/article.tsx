@@ -226,7 +226,7 @@ export default function ProjectArticle({ project }: ProjectArticleProps) {
   ];
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-svh bg-white">
       <StickyHeader />
 
       {/* ── Sidebar navigation (desktop only) ──────────────────────────── */}

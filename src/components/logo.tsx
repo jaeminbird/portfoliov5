@@ -59,6 +59,18 @@ let webglSupportCache: boolean | undefined
 const getWebGLSupport = () => (webglSupportCache ??= probeWebGLSupport())
 
 /**
+ * Visitors who asked their OS to reduce motion get the static SVG instead.
+ *
+ * MotionConfig handles this for every Framer Motion animation, but the 3D logo
+ * is a raw Three.js render loop that spins continuously and tracks the cursor,
+ * so it needs its own gate — and skipping it also avoids downloading the
+ * Three.js chunk and the model for those visitors.
+ */
+const prefersReducedMotion = () =>
+  typeof window !== 'undefined' &&
+  window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
+/**
  * Logo container with progressive enhancement.
  *
  * Rendering strategy:
@@ -77,7 +89,7 @@ export default function Logo() {
 
   // Compute WebGL support synchronously on client (safe since isClient guards
   // this, and the probe itself is cached after the first call).
-  const webglSupported = isClient ? getWebGLSupport() : null
+  const webglSupported = isClient ? getWebGLSupport() && !prefersReducedMotion() : null
 
   // Start loading Three.js when the logo area is near the viewport.
   useEffect(() => {

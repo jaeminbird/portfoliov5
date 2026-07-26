@@ -6,7 +6,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { projectData, FilterCategory } from '../data/projects';
 import { useBreakpoint } from '@/hooks/use-breakpoint';
-import { COLORS, BREAKPOINTS } from '@/lib/constants';
+import { COLORS } from '@/lib/constants';
 
 // ---------------------------------------------------------------------------
 // Animation variants
@@ -61,20 +61,15 @@ function getProjectCount(category: FilterCategory): number {
  * Uses character-count heuristics per breakpoint to approximate when the
  * browser would wrap text. This keeps the pill-shaped title tags visually
  * consistent across screen sizes.
+ *
+ * Takes the resolved character budget rather than a raw pixel width: the
+ * width was only ever compared against three thresholds, and depending on it
+ * forced this component to re-render on every pixel of a window drag.
  */
-function groupWordsByLines(title: string, screenWidth: number): string[][] {
+function groupWordsByLines(title: string, maxLineLength: number): string[][] {
   const words = title.split(' ');
   const lines: string[][] = [];
   let currentLine: string[] = [];
-
-  let maxLineLength = 20; // mobile default
-  if (screenWidth >= BREAKPOINTS.lg) {
-    maxLineLength = 50;
-  } else if (screenWidth >= BREAKPOINTS.md) {
-    maxLineLength = 22;
-  } else if (screenWidth >= BREAKPOINTS.sm) {
-    maxLineLength = 30;
-  }
 
   let currentLength = 0;
 
@@ -136,7 +131,10 @@ function ProjectTitleTag({ line, isMobile }: { line: string; isMobile: boolean }
 export default function Projects() {
   const [activeFilter, setActiveFilter] = useState<FilterCategory>('Featured');
   const [isTransitioning, setIsTransitioning] = useState(false);
-  const { isMobile, width: screenWidth } = useBreakpoint();
+  const { isMobile, isSm, isMd, isLg } = useBreakpoint();
+
+  // Character budget per breakpoint — same thresholds the pixel width encoded.
+  const maxLineLength = isLg ? 50 : isMd ? 22 : isSm ? 30 : 20;
 
   const filteredProjects = projectData.filter(project => {
     if (activeFilter === 'All') return true;
@@ -271,7 +269,7 @@ export default function Projects() {
                       {/* Title pills */}
                       <div className="h-[3.2em] flex flex-col justify-start self-start w-full">
                         <div className="flex flex-col gap-1">
-                          {groupWordsByLines(project.title, screenWidth).map((line, lineIndex) => (
+                          {groupWordsByLines(project.title, maxLineLength).map((line, lineIndex) => (
                             <div key={lineIndex} className="flex gap-1">
                               <ProjectTitleTag line={line.join(' ')} isMobile={isMobile} />
                             </div>

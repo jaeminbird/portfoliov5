@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, animate, useMotionValue, useTransform } from 'framer-motion';
 import { useBreakpoint } from '@/hooks/use-breakpoint';
-import { COLORS, LINKS } from '@/lib/constants';
+import { COLORS, LINKS, SPRING_INTERACTIVE } from '@/lib/constants';
 
 // ---------------------------------------------------------------------------
 // SlotMachine — cycles through tasks behind a sweeping asterisk
@@ -26,8 +26,14 @@ const SLOT_CH = Math.max(...[...TASKS, RARE_TASK].map((w) => w.length)) + 1;
 const wordLeft = (word: string) => (SLOT_CH - (word.length + 1)) / 2;
 
 const REST_MS = 2000;
-const HIDE_SEC = 0.35;
-const REVEAL_SEC = 0.4;
+
+/**
+ * Same underdamped spring the nav toggle uses, so the asterisk overshoots and
+ * settles rather than easing flatly into place. On the reveal it briefly
+ * carries past the end of the word before snapping back — the word itself
+ * stays fully drawn, since the clip is clamped to its length.
+ */
+const SWEEP_SPRING = SPRING_INTERACTIVE;
 
 function SlotMachine() {
   const [word, setWord] = useState(TASKS[0]);
@@ -76,20 +82,18 @@ function SlotMachine() {
 
         // Sweep far enough left to erase the outgoing word *and* to leave the
         // incoming one clipped to zero width, so the swap is never visible.
-        playing = animate(starX, Math.min(wordLeft(wordRef.current), nextLeft), {
-          duration: HIDE_SEC,
-          ease: 'easeIn',
-        });
+        playing = animate(
+          starX,
+          Math.min(wordLeft(wordRef.current), nextLeft),
+          SWEEP_SPRING,
+        );
         await playing.finished.catch(() => {});
         if (cancelled) return;
 
         wordRef.current = next;
         setWord(next);
 
-        playing = animate(starX, nextLeft + next.length, {
-          duration: REVEAL_SEC,
-          ease: 'easeOut',
-        });
+        playing = animate(starX, nextLeft + next.length, SWEEP_SPRING);
         await playing.finished.catch(() => {});
       }
     };

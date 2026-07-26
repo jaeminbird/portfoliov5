@@ -22,3 +22,26 @@ body {
   color: var(--foreground);
   font-family: var(--font-atkinson-hyperlegible), Arial, Helvetica, sans-serif;
 }
+
+/*
+ * Keyboard focus ring. `:focus-visible` means mouse users never see it, so
+ * there's no reason to suppress it — the browser default was hard to see
+ * against the accent-colored footer and nav pill.
+ */
+:focus-visible {
+  outline: 3px solid var(--foreground);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+/* Headings read better when the browser balances the line breaks itself
+   rather than leaving a single orphaned word. */
+h1, h2, h3 {
+  text-wrap: balance;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}

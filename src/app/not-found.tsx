@@ -7,7 +7,7 @@ import { COLORS } from '@/lib/constants';
 
 export default function NotFound() {
   return (
-    <div className="min-h-screen bg-white flex flex-col items-center justify-center">
+    <div className="min-h-svh bg-white flex flex-col items-center justify-center">
       {/* Logo */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}

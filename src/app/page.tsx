@@ -24,45 +24,49 @@ export default function Home() {
   const ctaPointerEvents = useTransform(opacity, (v) => (v < 0.05 ? 'none' : 'auto'));
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-svh bg-white">
       <StickyHeader />
 
-      {/* Hero — full-viewport logo section */}
-      <section className="min-h-screen flex flex-col items-center justify-center relative">
-        <Logo />
+      <main>
+        {/* Hero — full-viewport logo section */}
+        <section className="min-h-svh flex flex-col items-center justify-center relative">
+          <Logo />
 
-        {/* Scroll CTA — parallaxes away on scroll */}
-        <motion.div
-          className="fixed bottom-8 w-full flex justify-center cursor-pointer"
-          style={{ y: parallaxY, opacity, pointerEvents: ctaPointerEvents }}
-          onClick={() => scrollToSection('about')}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-        >
-          <div className="text-center">
-            <p className="text-xs uppercase tracking-widest text-gray-600 mb-1">
-              SCROLL TO
-            </p>
-            <p className="text-sm font-medium" style={{ color: COLORS.accent }}>
-              EXPLORE
-            </p>
-          </div>
-        </motion.div>
-      </section>
+          {/* Scroll CTA — parallaxes away on scroll */}
+          <motion.div
+            className="fixed bottom-8 w-full flex justify-center cursor-pointer"
+            style={{ y: parallaxY, opacity, pointerEvents: ctaPointerEvents }}
+            onClick={() => scrollToSection('about')}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            <div className="text-center">
+              <p className="text-xs uppercase tracking-widest text-gray-600 mb-1">
+                SCROLL TO
+              </p>
+              <p className="text-sm font-medium" style={{ color: COLORS.accent }}>
+                EXPLORE
+              </p>
+            </div>
+          </motion.div>
+        </section>
 
-      <Bumper number="01" sectionHeader="ABOUT" id="about" />
+        <Bumper number="01" sectionHeader="ABOUT" id="about" />
 
-      <section id="experience">
-        <Bio />
-        <Experience />
-      </section>
+        <section id="experience">
+          <Bio />
+          <Experience />
+        </section>
 
-      <Bumper number="02" sectionHeader="PROJECTS" id="projects" />
+        <Bumper number="02" sectionHeader="PROJECTS" id="projects" />
 
-      <section>
-        <Projects />
-      </section>
+        <section>
+          <Projects />
+        </section>
+      </main>
 
+      {/* Outside <main> so it lands in the contentinfo landmark — Footer
+          renders a real <footer> element. */}
       <section id="footer">
         <Footer />
       </section>

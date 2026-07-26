@@ -282,7 +282,7 @@ export default function Experience() {
   // ── Mobile layout (< lg) ───────────────────────────────────────────────
   if (isMobile) {
     return (
-      <div className="bg-white" style={{ minHeight: 'calc(100vh - 160px)' }}>
+      <div className="bg-white" style={{ minHeight: 'calc(100svh - 160px)' }}>
         <div className="w-full px-6 py-8">
           {/* Animated title area with sliding reveal */}
           <div className="relative h-[35vh] overflow-hidden">

@@ -3,6 +3,7 @@ import { Geist_Mono, Atkinson_Hyperlegible, Fredoka } from "next/font/google";
 import "./globals.css";
 import { Analytics } from "@vercel/analytics/next"
 import { SpeedInsights } from "@vercel/speed-insights/next"
+import { MotionProvider } from "@/components/motion-provider"
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
@@ -100,7 +101,7 @@ export default function RootLayout({
       <body
         className={`${geistMono.variable} ${atkinsonHyperlegible.variable} ${fredoka.variable} antialiased`}
       >
-        {children}
+        <MotionProvider>{children}</MotionProvider>
         <Analytics />
         <SpeedInsights />
       </body>

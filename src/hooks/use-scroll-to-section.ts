@@ -29,7 +29,11 @@ export function useScrollToSection(offset = 100) {
             const elementPosition = section.getBoundingClientRect().top;
             const offsetPosition = elementPosition + window.scrollY - offset;
 
-            window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
+            // A JS `behavior: 'smooth'` overrides the CSS `scroll-behavior`
+            // rule, so reduced-motion has to be honoured explicitly here.
+            const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+            window.scrollTo({ top: offsetPosition, behavior: reduced ? 'auto' : 'smooth' });
         },
         [offset],
     );

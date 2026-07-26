@@ -9,6 +9,14 @@ export interface JobInfo {
 
 export const jobData: JobInfo[] = [
   {
+    id: 4,
+    company: "Ciena",
+    title: "Associate Sales Engineer",
+    startDate: "Jul 2026",
+    endDate: "Present",
+    description: "Technical Pre-Sales"
+  },
+  {
     id: 1,
     company: "West Shore Home",
     title: "Applied AI Intern",
