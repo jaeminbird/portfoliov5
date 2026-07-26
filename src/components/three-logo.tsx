@@ -36,6 +36,27 @@ const MOUSE_SENSITIVITY_X = 0.4;
 /** Desktop: interpolation speed for mouse-follow rotation (0–1). */
 const MOUSE_LERP_FACTOR = 0.08;
 
+/**
+ * How much bigger the rendered wireframe is than the SVG placeholder.
+ *
+ * The model is normalised so its largest dimension spans MODEL_TARGET_SIZE
+ * world units, and a CAMERA_FOV camera at CAMERA_Z sees
+ * `2 * CAMERA_Z * tan(CAMERA_FOV / 2)` = 5.37 units of height — so the logo
+ * covers ~62% of the container's height. The placeholder is 128px inside a
+ * 320px box on mobile and 160px inside 384px above `md`, i.e. ~40% either way.
+ * The ratio works out to 1.53–1.59 across both breakpoints.
+ *
+ * The placeholder grows by this factor as it leaves while the canvas comes in
+ * from its reciprocal, so the two images stay the same apparent size for the
+ * whole crossfade and read as a single logo resolving into 3D.
+ */
+const PLACEHOLDER_TO_MODEL_SCALE = 1.55;
+const MODEL_ENTER_SCALE = 1 / PLACEHOLDER_TO_MODEL_SCALE;
+
+/** Duration and easing of that handover. */
+const HANDOVER_DURATION = 0.7;
+const HANDOVER_EASE = [0.22, 1, 0.36, 1] as const;
+
 /** Mobile: amplitude and speed of the idle oscillation. */
 const MOBILE_OSCILLATION_SPEED = 0.8;
 const MOBILE_OSCILLATION_Y = 0.3;
@@ -361,34 +382,51 @@ export default function ThreeJSLogo() {
   return (
     <>
       {/* Static SVG placeholder — shown until the 3D model is ready, then
-          cross-faded out so the wireframe doesn't pop in. AnimatePresence keeps
-          it mounted for the length of the exit transition. */}
+          handed over to the canvas. The backdrop fades on its own so the white
+          panel never appears to grow; only the glyph scales, meeting the
+          wireframe at its rendered size. */}
       <AnimatePresence>
         {!modelLoaded && (
           <motion.div
             className="absolute inset-0 bg-white flex items-center justify-center"
-            initial={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.5 }}
+            variants={{ shown: { opacity: 1 }, gone: { opacity: 0 } }}
+            initial="shown"
+            animate="shown"
+            exit="gone"
+            transition={{ duration: HANDOVER_DURATION, ease: HANDOVER_EASE }}
           >
-            <Image
-              src="/logo.svg"
-              alt="Logo"
-              width={128}
-              height={128}
-              priority
-              className="w-32 h-32 md:w-40 md:h-40"
-              unoptimized
-            />
+            {/* Inherits `gone` from the parent on exit. */}
+            <motion.div
+              variants={{ shown: { scale: 1 }, gone: { scale: PLACEHOLDER_TO_MODEL_SCALE } }}
+              transition={{ duration: HANDOVER_DURATION, ease: HANDOVER_EASE }}
+            >
+              <Image
+                src="/logo.svg"
+                alt="Logo"
+                width={128}
+                height={128}
+                priority
+                className="w-32 h-32 md:w-40 md:h-40"
+                unoptimized
+              />
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Three.js canvas */}
-      <div
+      {/* Three.js canvas. Transforms don't affect clientWidth/clientHeight, so
+          the renderer still sizes itself correctly while this animates. */}
+      <motion.div
         ref={mountRef}
         className="w-full h-full"
         style={{ pointerEvents: 'auto' }}
+        initial={{ opacity: 0, scale: MODEL_ENTER_SCALE }}
+        animate={
+          modelLoaded
+            ? { opacity: 1, scale: 1 }
+            : { opacity: 0, scale: MODEL_ENTER_SCALE }
+        }
+        transition={{ duration: HANDOVER_DURATION, ease: HANDOVER_EASE }}
       />
     </>
   )
