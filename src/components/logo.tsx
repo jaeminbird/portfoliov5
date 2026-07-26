@@ -1,10 +1,33 @@
 'use client'
 
-import React, { useRef, useEffect, useCallback, useState, lazy, Suspense } from 'react'
+import React, { useRef, useEffect, useCallback, useSyncExternalStore, useState, lazy, Suspense } from 'react'
 import Image from 'next/image'
 
 // Lazy-load Three.js components to keep the initial bundle small.
 const ThreeJSLogo = lazy(() => import('./three-logo'))
+
+// Shared fallback — used during SSR, when WebGL is missing, and as
+// the Suspense boundary placeholder while Three.js loads.
+function FallbackLogo() {
+  return (
+    <div className="w-full h-80 md:h-96 rounded-2xl overflow-hidden bg-white flex items-center justify-center">
+      <Image
+        src="/logo.svg"
+        alt="Logo"
+        width={128}
+        height={128}
+        priority
+        className="w-32 h-32 md:w-40 md:h-40"
+        sizes="(max-width: 768px) 128px, 160px"
+      />
+    </div>
+  )
+}
+
+// useSyncExternalStore subscribe/snapshot helpers for client detection.
+const emptySubscribe = () => () => {}
+const getClientSnapshot = () => true
+const getServerSnapshot = () => false
 
 /**
  * Logo container with progressive enhancement.
@@ -19,8 +42,7 @@ const ThreeJSLogo = lazy(() => import('./three-logo'))
  * chunk starts downloading just before the logo scrolls into view.
  */
 export default function Logo() {
-  const [isClient, setIsClient] = useState(false)
-  const [webglSupported, setWebglSupported] = useState<boolean | null>(null)
+  const isClient = useSyncExternalStore(emptySubscribe, getClientSnapshot, getServerSnapshot)
   const [shouldLoadThreeJS, setShouldLoadThreeJS] = useState(false)
   const intersectionRef = useRef<HTMLDivElement>(null)
 
@@ -48,11 +70,8 @@ export default function Logo() {
     }
   }, [])
 
-  // Client-side hydration guard.
-  useEffect(() => {
-    setIsClient(true)
-    setWebglSupported(checkWebGLSupport())
-  }, [checkWebGLSupport])
+  // Compute WebGL support synchronously on client (safe since isClient guards this).
+  const webglSupported = isClient ? checkWebGLSupport() : null
 
   // Start loading Three.js when the logo area is near the viewport.
   useEffect(() => {
@@ -76,22 +95,6 @@ export default function Logo() {
       observer.disconnect()
     }
   }, [isClient, webglSupported, shouldLoadThreeJS])
-
-  // Shared fallback — used during SSR, when WebGL is missing, and as
-  // the Suspense boundary placeholder while Three.js loads.
-  const FallbackLogo = () => (
-    <div className="w-full h-80 md:h-96 rounded-2xl overflow-hidden bg-white flex items-center justify-center">
-      <Image
-        src="/logo.svg"
-        alt="Logo"
-        width={128}
-        height={128}
-        priority
-        className="w-32 h-32 md:w-40 md:h-40"
-        sizes="(max-width: 768px) 128px, 160px"
-      />
-    </div>
-  )
 
   if (!isClient || webglSupported === false) {
     return <FallbackLogo />

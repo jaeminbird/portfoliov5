@@ -1,5 +1,5 @@
 "use client"
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence, Transition } from "framer-motion";
 import Image from "next/image";
 import { IconBrandLinkedinFilled, IconBrandGithubFilled } from '@tabler/icons-react';
@@ -153,7 +153,10 @@ export default function StickyHeader() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const { isMobile } = useBreakpoint();
   const scrollToSection = useScrollToSection(100);
-  const previousIsMobileRef = useRef(false);
+
+  // The overlay only exists on mobile, so resizing to desktop implicitly
+  // closes it — no effect needed to sync the two.
+  const menuOpen = mobileNavOpen && isMobile;
 
   // Track scroll position to toggle header background.
   useEffect(() => {
@@ -162,19 +165,11 @@ export default function StickyHeader() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Close mobile menu when resizing to desktop.
-  useEffect(() => {
-    if (!isMobile && previousIsMobileRef.current && mobileNavOpen) {
-      setMobileNavOpen(false);
-    }
-    previousIsMobileRef.current = isMobile;
-  }, [isMobile, mobileNavOpen]);
-
   // Lock body scroll while the mobile overlay is open.
   useEffect(() => {
-    document.body.style.overflow = mobileNavOpen ? 'hidden' : 'auto';
+    document.body.style.overflow = menuOpen ? 'hidden' : 'auto';
     return () => { document.body.style.overflow = 'auto'; };
-  }, [mobileNavOpen]);
+  }, [menuOpen]);
 
   /** Navigate to a section, closing the mobile menu in the process. */
   const handleNavClick = (id: string) => (e: React.MouseEvent) => {
@@ -204,7 +199,7 @@ export default function StickyHeader() {
         <motion.div
           className="w-[29px] h-[29px] cursor-pointer"
           whileHover={!isMobile ? { rotate: 218 } : undefined}
-          animate={mobileNavOpen ? { rotate: 218 } : { rotate: 0 }}
+          animate={menuOpen ? { rotate: 218 } : { rotate: 0 }}
           transition={{ duration: 0.5 }}
           onClick={() => {
             if (window.location.pathname !== '/') {
@@ -245,8 +240,8 @@ export default function StickyHeader() {
       {/* ── Mobile hamburger (right) ────────────────────────────────── */}
       <div className="absolute right-6 md:hidden z-[70] cursor-pointer">
         <MenuButton
-          isOpen={mobileNavOpen}
-          onClick={() => setMobileNavOpen(!mobileNavOpen)}
+          isOpen={menuOpen}
+          onClick={() => setMobileNavOpen(!menuOpen)}
           strokeWidth="6"
           color={COLORS.accent}
           lineProps={{ strokeLinecap: "round" }}
@@ -258,7 +253,7 @@ export default function StickyHeader() {
 
       {/* ── Mobile fullscreen overlay ───────────────────────────────── */}
       <AnimatePresence>
-        {mobileNavOpen && (
+        {menuOpen && (
           <motion.div
             className="fixed inset-0 bg-white z-[60] flex flex-col items-center justify-center"
             initial={{ opacity: 0 }}

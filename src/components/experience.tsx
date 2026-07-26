@@ -223,7 +223,7 @@ export default function Experience() {
   const [hoveredJob, setHoveredJob] = useState<JobInfo | null>(null);
   const [previousJobIndex, setPreviousJobIndex] = useState<number | null>(null);
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const { isLg, isXs, isLgOnly, isMobile: isMobileBreakpoint } = useBreakpoint();
+  const { isLg, isXs, isLgOnly } = useBreakpoint();
 
   const isMobile = !isLg;
   const infoVariants = makeInfoVariants(isMobile);

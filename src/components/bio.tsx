@@ -163,7 +163,7 @@ function NameHeading({
 // ---------------------------------------------------------------------------
 
 export default function Bio() {
-  const { isLg, isXs } = useBreakpoint();
+  const { isLg } = useBreakpoint();
 
   // ── Mobile layout (< lg) ────────────────────────────────────────────────
   if (!isLg) {

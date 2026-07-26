@@ -6,7 +6,7 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "eslint ."
   },
   "dependencies": {
     "@tabler/icons-react": "^3.34.0",
@@ -21,7 +21,6 @@
     "three": "^0.177.0"
   },
   "devDependencies": {
-    "@eslint/eslintrc": "^3.3.0",
     "@tailwindcss/postcss": "^4.1.10",
     "@types/node": "^20",
     "@types/react": "^19",
