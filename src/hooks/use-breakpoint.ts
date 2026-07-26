@@ -70,15 +70,26 @@ const SSR_DEFAULT: BreakpointState = {
 let snapshot: BreakpointState = SSR_DEFAULT;
 let lists: MediaQueryList[] | null = null;
 
+/**
+ * Every consuming component, so a single media-query change can notify all of
+ * them. Each subscriber must NOT own its own change handler: `refresh()`
+ * reports whether it mutated the snapshot, so the first handler to run would
+ * consume the change and leave the rest believing nothing had happened.
+ */
+const listeners = new Set<() => void>();
+
 function read(): BreakpointState {
     const next = {} as BreakpointState;
-    for (const key of KEYS) next[key] = window.matchMedia(QUERIES[key]).matches;
+    const source = lists;
+    KEYS.forEach((key, i) => {
+        next[key] = source ? source[i].matches : window.matchMedia(QUERIES[key]).matches;
+    });
     return next;
 }
 
 /**
- * Recomputes only when something actually changed, so the returned object keeps
- * a stable identity and `useSyncExternalStore` can bail out of the re-render.
+ * Replaces the snapshot only when a flag actually changed, so its identity stays
+ * stable and `useSyncExternalStore` can bail out of the re-render.
  */
 function refresh(): boolean {
     const next = read();
@@ -87,25 +98,33 @@ function refresh(): boolean {
     return true;
 }
 
+function broadcast() {
+    if (!refresh()) return;
+    for (const listener of listeners) listener();
+}
+
 function subscribe(onStoreChange: () => void): () => void {
-    // First subscriber lazily creates the MediaQueryLists and syncs the
-    // snapshot away from the SSR default.
+    // The first subscriber lazily creates the MediaQueryLists and attaches the
+    // one shared handler.
     if (!lists) {
         lists = KEYS.map((key) => window.matchMedia(QUERIES[key]));
+        for (const list of lists) list.addEventListener('change', broadcast);
         refresh();
     }
 
-    const handler = () => {
-        if (refresh()) onStoreChange();
-    };
+    listeners.add(onStoreChange);
 
-    for (const list of lists) list.addEventListener('change', handler);
-
-    // Cover the gap between hydration and subscription.
-    if (refresh()) onStoreChange();
+    // Cover any change between the render that produced the snapshot and this
+    // subscription — including the initial move off the SSR default.
+    broadcast();
 
     return () => {
-        for (const list of lists!) list.removeEventListener('change', handler);
+        listeners.delete(onStoreChange);
+
+        if (listeners.size === 0 && lists) {
+            for (const list of lists) list.removeEventListener('change', broadcast);
+            lists = null;
+        }
     };
 }
 

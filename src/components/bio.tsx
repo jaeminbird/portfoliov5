@@ -28,12 +28,30 @@ const wordLeft = (word: string) => (SLOT_CH - (word.length + 1)) / 2;
 const REST_MS = 2000;
 
 /**
- * Same underdamped spring the nav toggle uses, so the asterisk overshoots and
- * settles rather than easing flatly into place. On the reveal it briefly
- * carries past the end of the word before snapping back — the word itself
- * stays fully drawn, since the clip is clamped to its length.
+ * Overdamped (damping ratio ~1.02), so the hide sweep decelerates into the
+ * turn without ever crossing back over it.
+ *
+ * A bouncy spring here is what made the wipe stutter: it overshot the turn,
+ * sprang back, and settled before the reveal could start — a visible double
+ * back. It read worst when consecutive words begin at nearly the same x,
+ * because then the oscillation was the only motion happening at the turn.
  */
-const SWEEP_SPRING = SPRING_INTERACTIVE;
+const HIDE_SPRING = { type: 'spring' as const, stiffness: 420, damping: 42 };
+
+/**
+ * The reveal keeps the underdamped nav-toggle spring, so the asterisk still
+ * carries past the end of the word and settles back. The word itself stays
+ * fully drawn, since the clip is clamped to its length.
+ */
+const REVEAL_SPRING = SPRING_INTERACTIVE;
+
+/**
+ * How close (in ch) the asterisk must get to the turn before the reveal takes
+ * over. Retargeting slightly early means the motion value still carries
+ * leftward velocity into the new animation, which Motion inherits — so the
+ * reversal is one continuous arc instead of a stop followed by a restart.
+ */
+const TURN_EPSILON_CH = 0.06;
 
 function SlotMachine() {
   const [word, setWord] = useState(TASKS[0]);
@@ -67,6 +85,34 @@ function SlotMachine() {
         timer = setTimeout(resolve, ms);
       });
 
+    /**
+     * Resolves as soon as the asterisk is within `TURN_EPSILON_CH` of the turn,
+     * rather than waiting for the hide animation to come fully to rest. The
+     * handover therefore happens while the value is still moving left, and the
+     * reveal spring picks up that velocity instead of starting from zero.
+     */
+    const sweepTo = (turn: number) =>
+      new Promise<void>((resolve) => {
+        let settled = false;
+        const finish = () => {
+          if (settled) return;
+          settled = true;
+          unwatch();
+          resolve();
+        };
+
+        const unwatch = starX.on('change', (x) => {
+          if (x <= turn + TURN_EPSILON_CH) finish();
+        });
+
+        playing = animate(starX, turn, HIDE_SPRING);
+        playing.finished.then(finish).catch(finish);
+
+        // Guard the case where the asterisk already sits at the turn and the
+        // motion value therefore never emits a change.
+        if (starX.get() <= turn + TURN_EPSILON_CH) finish();
+      });
+
     const run = async () => {
       while (!cancelled) {
         await wait(REST_MS);
@@ -82,18 +128,16 @@ function SlotMachine() {
 
         // Sweep far enough left to erase the outgoing word *and* to leave the
         // incoming one clipped to zero width, so the swap is never visible.
-        playing = animate(
-          starX,
-          Math.min(wordLeft(wordRef.current), nextLeft),
-          SWEEP_SPRING,
-        );
-        await playing.finished.catch(() => {});
+        await sweepTo(Math.min(wordLeft(wordRef.current), nextLeft));
         if (cancelled) return;
 
         wordRef.current = next;
         setWord(next);
 
-        playing = animate(starX, nextLeft + next.length, SWEEP_SPRING);
+        // Retargeting the same motion value mid-flight: Motion carries the
+        // current velocity into this spring, turning the reversal into a
+        // single continuous arc.
+        playing = animate(starX, nextLeft + next.length, REVEAL_SPRING);
         await playing.finished.catch(() => {});
       }
     };
