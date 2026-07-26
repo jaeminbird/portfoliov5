@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useRef, useEffect, useCallback, useSyncExternalStore, useState, lazy, Suspense } from 'react'
+import React, { useRef, useEffect, useSyncExternalStore, useState, lazy, Suspense } from 'react'
 import Image from 'next/image'
 
 // Lazy-load Three.js components to keep the initial bundle small.
@@ -30,6 +30,35 @@ const getClientSnapshot = () => true
 const getServerSnapshot = () => false
 
 /**
+ * Probes WebGL support by creating a throwaway canvas context.
+ * Cleans up the context immediately to avoid holding GPU resources.
+ */
+function probeWebGLSupport() {
+  try {
+    const canvas = document.createElement('canvas')
+    const gl =
+      (canvas.getContext('webgl') as WebGLRenderingContext | null) ||
+      (canvas.getContext('experimental-webgl') as WebGLRenderingContext | null)
+    const supported = !!gl
+
+    if (gl) {
+      const loseContext = gl.getExtension('WEBGL_lose_context')
+      if (loseContext) loseContext.loseContext()
+    }
+    canvas.remove()
+
+    return supported
+  } catch {
+    return false
+  }
+}
+
+// The answer can't change for the lifetime of the page, so probe at most once —
+// acquiring and losing a GPU context is not something to repeat per render.
+let webglSupportCache: boolean | undefined
+const getWebGLSupport = () => (webglSupportCache ??= probeWebGLSupport())
+
+/**
  * Logo container with progressive enhancement.
  *
  * Rendering strategy:
@@ -46,32 +75,9 @@ export default function Logo() {
   const [shouldLoadThreeJS, setShouldLoadThreeJS] = useState(false)
   const intersectionRef = useRef<HTMLDivElement>(null)
 
-  /**
-   * Probes WebGL support by creating a throwaway canvas context.
-   * Cleans up the context immediately to avoid holding GPU resources.
-   */
-  const checkWebGLSupport = useCallback(() => {
-    try {
-      const canvas = document.createElement('canvas')
-      const gl =
-        (canvas.getContext('webgl') as WebGLRenderingContext | null) ||
-        (canvas.getContext('experimental-webgl') as WebGLRenderingContext | null)
-      const supported = !!gl
-
-      if (gl) {
-        const loseContext = gl.getExtension('WEBGL_lose_context')
-        if (loseContext) loseContext.loseContext()
-      }
-      canvas.remove()
-
-      return supported
-    } catch {
-      return false
-    }
-  }, [])
-
-  // Compute WebGL support synchronously on client (safe since isClient guards this).
-  const webglSupported = isClient ? checkWebGLSupport() : null
+  // Compute WebGL support synchronously on client (safe since isClient guards
+  // this, and the probe itself is cached after the first call).
+  const webglSupported = isClient ? getWebGLSupport() : null
 
   // Start loading Three.js when the logo area is near the viewport.
   useEffect(() => {
