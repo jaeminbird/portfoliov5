@@ -1,87 +1,130 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { motion } from 'framer-motion';
+import { useState, useEffect, useRef } from 'react';
+import { motion, animate, useMotionValue, useTransform } from 'framer-motion';
 import { useBreakpoint } from '@/hooks/use-breakpoint';
 import { COLORS, LINKS } from '@/lib/constants';
 
 // ---------------------------------------------------------------------------
-// SlotMachine — cycles through tasks with a slot machine letter effect
+// SlotMachine — cycles through tasks behind a sweeping asterisk
+//
+// The `*` is the leading edge of a wipe: it sweeps left to erase the current
+// word, the word is swapped while nothing is visible, then it sweeps right to
+// draw the new one. Positions are in `ch` units, which are exact here because
+// --font-mono resolves to Geist Mono — so the wipe rides the character grid
+// with no DOM measurement.
 // ---------------------------------------------------------------------------
 
 const TASKS = ['AI', 'Research', 'Tennis', 'UI/UX', 'ML', 'WebDev', 'Pre-Sales'];
 const RARE_TASK = 'your mom';
 const RARE_CHANCE = 1 / 1000000;
-const CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz/-';
+
+/** Slot is sized to the widest word plus its asterisk, so the line never reflows. */
+const SLOT_CH = Math.max(...[...TASKS, RARE_TASK].map((w) => w.length)) + 1;
+
+/** Left edge of a word, centering the word+asterisk pair within the slot. */
+const wordLeft = (word: string) => (SLOT_CH - (word.length + 1)) / 2;
+
+const REST_MS = 2000;
+const HIDE_SEC = 0.35;
+const REVEAL_SEC = 0.4;
 
 function SlotMachine() {
-  const [currentTaskIndex, setCurrentTaskIndex] = useState(0);
-  const [displayText, setDisplayText] = useState(TASKS[0]);
-  const [isScrambling, setIsScrambling] = useState(false);
+  const [word, setWord] = useState(TASKS[0]);
 
-  const scrambleToTask = useCallback((targetTask: string) => {
-    setIsScrambling(true);
-    const maxLength = Math.max(displayText.length, targetTask.length);
-    let iteration = 0;
-    const totalIterations = 12;
+  // Read inside the clip transform, which must see the current word without
+  // being torn down and rebuilt on every swap. Written only from the effect
+  // below, alongside setWord — never during render.
+  const wordRef = useRef(TASKS[0]);
 
-    const interval = setInterval(() => {
-      iteration++;
-      
-      // Generate scrambled text
-      const progress = iteration / totalIterations;
-      const lockedChars = Math.floor(progress * targetTask.length);
-      
-      let newText = '';
-      for (let i = 0; i < maxLength; i++) {
-        if (i < lockedChars) {
-          // This character is "locked in"
-          newText += targetTask[i] || '';
-        } else if (i < targetTask.length) {
-          // Still scrambling this position
-          newText += CHARS[Math.floor(Math.random() * CHARS.length)];
-        }
-      }
-      
-      setDisplayText(newText);
+  // Position of the asterisk, in ch from the left edge of the slot.
+  const starX = useMotionValue(wordLeft(TASKS[0]) + TASKS[0].length);
 
-      if (iteration >= totalIterations) {
-        clearInterval(interval);
-        setDisplayText(targetTask);
-        setIsScrambling(false);
-      }
-    }, 40);
+  const starLeft = useTransform(starX, (x) => `${x}ch`);
 
-    return () => clearInterval(interval);
-  }, [displayText.length]);
+  // Everything to the right of the asterisk is clipped away, so the word is
+  // only ever visible up to wherever the asterisk currently sits.
+  const wordClip = useTransform(starX, (x) => {
+    const current = wordRef.current;
+    const revealed = Math.min(Math.max(x - wordLeft(current), 0), current.length);
+    return `inset(0 ${current.length - revealed}ch 0 0)`;
+  });
 
   useEffect(() => {
-    const cycleInterval = setInterval(() => {
-      if (!isScrambling) {
-        // 1 in 1 million chance for the rare task
-        if (Math.random() < RARE_CHANCE) {
-          scrambleToTask(RARE_TASK);
-        } else {
-          const nextIndex = (currentTaskIndex + 1) % TASKS.length;
-          setCurrentTaskIndex(nextIndex);
-          scrambleToTask(TASKS[nextIndex]);
-        }
-      }
-    }, 2000);
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let playing: ReturnType<typeof animate> | undefined;
+    let index = 0;
 
-    return () => clearInterval(cycleInterval);
-  }, [currentTaskIndex, isScrambling, scrambleToTask]);
+    const wait = (ms: number) =>
+      new Promise<void>((resolve) => {
+        timer = setTimeout(resolve, ms);
+      });
+
+    const run = async () => {
+      while (!cancelled) {
+        await wait(REST_MS);
+        if (cancelled) return;
+
+        // 1 in a million chance for the rare task.
+        const next =
+          Math.random() < RARE_CHANCE
+            ? RARE_TASK
+            : TASKS[(index = (index + 1) % TASKS.length)];
+
+        const nextLeft = wordLeft(next);
+
+        // Sweep far enough left to erase the outgoing word *and* to leave the
+        // incoming one clipped to zero width, so the swap is never visible.
+        playing = animate(starX, Math.min(wordLeft(wordRef.current), nextLeft), {
+          duration: HIDE_SEC,
+          ease: 'easeIn',
+        });
+        await playing.finished.catch(() => {});
+        if (cancelled) return;
+
+        wordRef.current = next;
+        setWord(next);
+
+        playing = animate(starX, nextLeft + next.length, {
+          duration: REVEAL_SEC,
+          ease: 'easeOut',
+        });
+        await playing.finished.catch(() => {});
+      }
+    };
+
+    run();
+
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+      playing?.stop();
+    };
+  }, [starX]);
 
   return (
     <span
-      className="inline-block font-mono"
-      style={{ 
-        color: COLORS.accent,
-        minWidth: '7ch',
-        textAlign: 'center'
-      }}
+      className="relative inline-block font-mono align-baseline"
+      style={{ color: COLORS.accent, width: `${SLOT_CH}ch` }}
     >
-      {displayText}
+      {/* Holds the line box open — the word and asterisk are both absolute. */}
+      <span aria-hidden className="invisible">&nbsp;</span>
+
+      <motion.span
+        className="absolute top-0 whitespace-pre"
+        style={{
+          left: `${wordLeft(word)}ch`,
+          width: `${word.length}ch`,
+          clipPath: wordClip,
+        }}
+      >
+        {word}
+      </motion.span>
+
+      <motion.span className="absolute top-0" style={{ left: starLeft }} aria-hidden>
+        *
+      </motion.span>
     </span>
   );
 }
